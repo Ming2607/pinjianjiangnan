@@ -21,7 +21,7 @@ git commit -m "品鉴江南伴手礼订购系统"
 在 GitHub 新建仓库（例如 `jiu`），然后：
 
 ```bash
-git remote add origin https://github.com/你的用户名/jiu.git
+git remote add origin https://github.com/你的用户名/pinjianjiangnan.git
 git branch -M main
 git push -u origin main
 ```
@@ -88,7 +88,7 @@ git push
 约 1–2 分钟后，访问：
 
 ```
-https://你的用户名.github.io/jiu/
+https://你的用户名.github.io/pinjianjiangnan/
 ```
 
 （仓库名若不是 `jiu`，把 URL 里的路径改成你的仓库名。）
