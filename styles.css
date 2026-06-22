@@ -22,7 +22,7 @@
   --border: #E5DFD5;
   --border-gold: rgba(184, 149, 106, 0.45);
   --accent: #7A3B3B;
-  --nav-width: 80px;
+  --nav-width: 84px;
   --header-height: 56px;
   --radius: 2px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -60,8 +60,8 @@ body {
   height: var(--header-height);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 18px;
+  gap: 8px;
+  padding: 0 12px 0 10px;
   background: var(--ink);
   color: var(--gold-pale);
   border-bottom: 1px solid rgba(184, 149, 106, 0.25);
@@ -70,6 +70,33 @@ body {
 .header-brand {
   flex: 1;
   min-width: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.header-btn {
+  background: transparent;
+  border: 1px solid rgba(184, 149, 106, 0.35);
+  border-radius: var(--radius);
+  color: var(--gold-light);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 6px 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.header-btn[hidden] {
+  display: none;
+}
+
+.header-btn svg {
+  display: block;
 }
 
 .header-title {
@@ -112,7 +139,6 @@ body {
   color: var(--gold-light);
   cursor: pointer;
   flex-shrink: 0;
-  margin-left: 12px;
 }
 
 .cart-count {
@@ -190,7 +216,7 @@ body {
   font-weight: 500;
   color: var(--text-secondary);
   text-align: center;
-  line-height: 1.35;
+  line-height: 1.4;
   letter-spacing: 0.06em;
 }
 
@@ -256,6 +282,32 @@ body {
   border-radius: var(--radius);
   margin-bottom: 16px;
   overflow: hidden;
+}
+
+.product-card-link {
+  cursor: pointer;
+}
+
+.product-card-link:active {
+  opacity: 0.92;
+}
+
+.price-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  letter-spacing: 0.03em;
+}
+
+.price-hint strong {
+  font-family: 'Noto Serif SC', serif;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.price-hint span {
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 .product-image-wrap {
@@ -405,18 +457,45 @@ body {
 .product-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
+  justify-content: stretch;
+  padding: 0 16px 16px;
+}
+
+.add-btn {
+  background: var(--ink);
+  color: var(--gold-light);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  transition: background 0.2s, color 0.2s;
+  width: 100%;
+}
+
+.add-btn:active {
+  background: var(--ink-soft);
 }
 
 .qty-control {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
+}
+
+.qty-control-lg .qty-btn {
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+}
+
+.qty-control-lg .qty-value {
+  width: 48px;
+  font-size: 16px;
 }
 
 .qty-btn {
@@ -446,21 +525,195 @@ body {
   color: var(--ink);
 }
 
-.add-btn {
-  background: var(--ink);
-  color: var(--gold-light);
-  border: 1px solid var(--ink);
-  border-radius: var(--radius);
-  padding: 9px 16px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  letter-spacing: 0.1em;
-  transition: background 0.2s, color 0.2s;
+/* ── 产品详情页 ── */
+.detail-page {
+  margin: -14px -12px 0;
 }
 
-.add-btn:active {
-  background: var(--ink-soft);
+.detail-image-wrap {
+  min-height: 260px;
+}
+
+.detail-image-wrap .product-image {
+  height: 260px;
+}
+
+.detail-content {
+  padding: 18px 16px 24px;
+}
+
+.detail-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+}
+
+.detail-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  letter-spacing: 0.03em;
+}
+
+.detail-pricing {
+  margin: 16px 0;
+  padding: 14px;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.detail-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.detail-price-row span {
+  font-size: 11px;
+  color: var(--text-muted);
+  width: 32px;
+  letter-spacing: 0.08em;
+}
+
+.detail-price-row strong {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 18px;
+  color: var(--ink);
+}
+
+.detail-price-row em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.detail-text {
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  margin-bottom: 20px;
+}
+
+.detail-add-btn {
+  margin-top: 4px;
+}
+
+/* ── 我的订单 ── */
+.orders-page {
+  padding-bottom: 20px;
+}
+
+.page-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-header h2 {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.page-header p {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.orders-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 2;
+  letter-spacing: 0.04em;
+}
+
+.orders-empty span {
+  font-size: 12px;
+}
+
+.order-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.order-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.order-id {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+
+.order-date {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.order-items {
+  list-style: none;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin-bottom: 10px;
+}
+
+.order-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.order-meta strong {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 16px;
+  color: var(--ink);
+}
+
+/* ── 加入购物袋弹窗 ── */
+.add-cart-body {
+  padding: 16px 20px calc(20px + var(--safe-bottom));
+}
+
+.add-cart-section {
+  margin-bottom: 18px;
+}
+
+.add-cart-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+}
+
+.add-cart-body .price-options {
+  display: flex;
+  gap: 10px;
+}
+
+.add-cart-body .submit-btn {
+  margin-top: 4px;
 }
 
 /* ── Overlay & Drawer ── */

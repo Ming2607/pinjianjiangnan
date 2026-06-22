@@ -1,4 +1,4 @@
-/** 江南大学伴手礼订购 — 前端逻辑 */
+/** 品鉴江南伴手礼 — 前端逻辑 */
 
 function assetUrl(path) {
   if (!path || path.startsWith('http')) return path;
@@ -6,23 +6,45 @@ function assetUrl(path) {
   return base.replace(/\/?$/, '/') + path.replace(/^\//, '');
 }
 
+const ORDERS_KEY = 'jiu_my_orders';
+
 const state = {
+  page: 'shop',
   activeCategory: CATEGORIES[0].id,
+  detailProductId: null,
   cart: [],
-  /** 各商品当前选中的规格：{ productId: 'bottle' | 'case' } */
-  selectedSpec: {},
+  addCartProductId: null,
+  addCartSpec: 'bottle',
+  addCartQty: 1,
 };
 
 // ── 初始化 ──
 function init() {
-  PRODUCTS.forEach((p) => {
-    if (p.pricing.type === 'dual') {
-      state.selectedSpec[p.id] = 'bottle';
-    }
-  });
-  renderCategories();
-  renderProducts();
+  renderMain();
+  updateCartUI();
   bindEvents();
+}
+
+function renderMain() {
+  const nav = document.getElementById('categoryNav');
+  const backBtn = document.getElementById('backBtn');
+
+  if (state.page === 'shop') {
+    nav.style.display = '';
+    backBtn.hidden = true;
+    renderCategories();
+    renderProducts();
+  } else {
+    nav.style.display = 'none';
+    backBtn.hidden = false;
+    if (state.page === 'detail') renderProductDetail(state.detailProductId);
+    if (state.page === 'orders') renderMyOrders();
+  }
+}
+
+function formatCatName(cat) {
+  if (cat.nameLines) return cat.nameLines.join('<br>');
+  return cat.name;
 }
 
 function renderCategories() {
@@ -31,10 +53,18 @@ function renderCategories() {
     (cat) => `
     <div class="cat-item ${cat.id === state.activeCategory ? 'active' : ''}"
          data-id="${cat.id}">
-      <span class="cat-item-name">${cat.name}</span>
+      <span class="cat-item-name">${formatCatName(cat)}</span>
       <span class="cat-item-sub">${cat.subtitle}</span>
     </div>`
   ).join('');
+}
+
+function renderPriceHint(product) {
+  if (product.pricing.type === 'dual') {
+    const { bottle, case: c } = product.pricing;
+    return `<div class="price-hint">单瓶 <strong>¥${bottle.price}</strong> · 成箱 <strong>¥${c.price}</strong></div>`;
+  }
+  return `<div class="price-hint"><strong>¥${product.pricing.price}</strong><span>/${product.pricing.unit}</span></div>`;
 }
 
 function renderProducts() {
@@ -73,8 +103,8 @@ function renderProductImage(product, index) {
     </picture>`;
 }
 
-function bindImageLoaders() {
-  document.querySelectorAll('.product-image').forEach((img) => {
+function bindImageLoaders(root) {
+  (root || document).querySelectorAll('.product-image').forEach((img) => {
     const done = () => {
       img.classList.add('is-loaded');
       img.closest('.product-image-wrap')?.classList.add('is-loaded');
@@ -88,58 +118,131 @@ function bindImageLoaders() {
 }
 
 function renderProductCard(product, index) {
-  const spec = state.selectedSpec[product.id];
+  return `
+    <div class="product-card" data-id="${product.id}">
+      <div class="product-card-link" data-product="${product.id}">
+        <div class="product-image-wrap">
+          ${renderProductImage(product, index)}
+        </div>
+        <div class="product-body">
+          <div class="product-name">${product.name}</div>
+          <div class="product-desc">${product.desc}</div>
+          ${renderPriceHint(product)}
+        </div>
+      </div>
+      <div class="product-actions">
+        <button class="add-btn" type="button" data-product="${product.id}">加入购物袋</button>
+      </div>
+    </div>`;
+}
+
+function renderProductDetail(productId) {
+  const product = PRODUCTS.find((p) => p.id === productId);
+  if (!product) return goShop();
+
+  const area = document.getElementById('productArea');
   let pricingHtml = '';
 
   if (product.pricing.type === 'dual') {
-    const { bottle, case: caseOpt } = product.pricing;
+    const { bottle, case: c } = product.pricing;
     pricingHtml = `
-      <div class="pricing-section">
-        <div class="pricing-label">选择规格</div>
-        <div class="price-options">
-          <div class="price-option ${spec === 'bottle' ? 'selected' : ''}"
-               data-product="${product.id}" data-spec="bottle">
-            <div class="price-option-label">${bottle.label}</div>
-            <div class="price-option-value">¥${bottle.price}</div>
-            <div class="price-option-note">/${bottle.unit}</div>
-          </div>
-          <div class="price-option ${spec === 'case' ? 'selected' : ''}"
-               data-product="${product.id}" data-spec="case">
-            <div class="price-option-label">${caseOpt.label}</div>
-            <div class="price-option-value">¥${caseOpt.price}</div>
-            <div class="price-option-note">${caseOpt.note || ''}</div>
-          </div>
-        </div>
+      <div class="detail-pricing">
+        <div class="detail-price-row"><span>单瓶</span><strong>¥${bottle.price}</strong><em>/${bottle.unit}</em></div>
+        <div class="detail-price-row"><span>成箱</span><strong>¥${c.price}</strong><em>/${c.unit} · ${c.note}</em></div>
       </div>`;
   } else {
     pricingHtml = `
-      <div class="pricing-section">
-        <div class="single-price">
-          <span class="amount">¥${product.pricing.price}</span>
-          <span class="unit">/${product.pricing.unit}</span>
-        </div>
+      <div class="detail-pricing">
+        <div class="detail-price-row"><span>售价</span><strong>¥${product.pricing.price}</strong><em>/${product.pricing.unit}</em></div>
       </div>`;
   }
 
-  return `
-    <div class="product-card" data-id="${product.id}">
-      <div class="product-image-wrap">
-        ${renderProductImage(product, index)}
+  area.innerHTML = `
+    <div class="detail-page">
+      <div class="product-image-wrap detail-image-wrap">
+        ${renderProductImage(product, 0)}
       </div>
-      <div class="product-body">
-        <div class="product-name">${product.name}</div>
-        <div class="product-desc">${product.desc}</div>
+      <div class="detail-content">
+        <h2 class="detail-title">${product.name}</h2>
+        <p class="detail-subtitle">${product.desc}</p>
         ${pricingHtml}
-        <div class="product-actions">
-          <div class="qty-control" data-product="${product.id}">
-            <button class="qty-btn minus" type="button">−</button>
-            <span class="qty-value">1</span>
-            <button class="qty-btn plus" type="button">+</button>
-          </div>
-          <button class="add-btn" data-product="${product.id}">加入购物袋</button>
-        </div>
+        <div class="detail-text">${product.detail || product.desc}</div>
+        <button class="submit-btn detail-add-btn" type="button" data-product="${product.id}">加入购物袋</button>
       </div>
     </div>`;
+
+  bindImageLoaders(area);
+  area.scrollTop = 0;
+}
+
+function renderMyOrders() {
+  const orders = loadMyOrders();
+  const area = document.getElementById('productArea');
+
+  if (orders.length === 0) {
+    area.innerHTML = `
+      <div class="orders-page">
+        <div class="page-header"><h2>我的订单</h2></div>
+        <div class="orders-empty">暂无订单记录<br><span>成功下单后，订单将显示在这里</span></div>
+      </div>`;
+    return;
+  }
+
+  area.innerHTML = `
+    <div class="orders-page">
+      <div class="page-header"><h2>我的订单</h2><p>共 ${orders.length} 笔</p></div>
+      ${orders.map(renderOrderCard).join('')}
+    </div>`;
+  area.scrollTop = 0;
+}
+
+function renderOrderCard(order) {
+  const date = new Date(order.createdAt).toLocaleString('zh-CN');
+  const items = order.items
+    .map((i) => `<li>${i.name}（${i.spec}）× ${i.qty} · ¥${i.subtotal}</li>`)
+    .join('');
+  return `
+    <div class="order-card">
+      <div class="order-card-head">
+        <span class="order-id">${order.id}</span>
+        <span class="order-date">${date}</span>
+      </div>
+      <ul class="order-items">${items}</ul>
+      <div class="order-meta">
+        <span>${order.customer.name} · ${order.customer.phone}</span>
+        <strong>¥${order.total}</strong>
+      </div>
+    </div>`;
+}
+
+function loadMyOrders() {
+  try {
+    return JSON.parse(localStorage.getItem(ORDERS_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function saveMyOrder(order) {
+  const orders = loadMyOrders();
+  orders.unshift(order);
+  localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+}
+
+function goShop() {
+  state.page = 'shop';
+  renderMain();
+}
+
+function openDetail(productId) {
+  state.page = 'detail';
+  state.detailProductId = productId;
+  renderMain();
+}
+
+function openOrders() {
+  state.page = 'orders';
+  renderMain();
 }
 
 function getProductPrice(product, spec) {
@@ -159,20 +262,19 @@ function getCartKey(productId, spec) {
   return spec ? `${productId}:${spec}` : productId;
 }
 
-function addToCart(productId, qty) {
+function addToCart(productId, qty, spec) {
   const product = PRODUCTS.find((p) => p.id === productId);
-  const spec = product.pricing.type === 'dual' ? state.selectedSpec[productId] : null;
-  const key = getCartKey(productId, spec);
-  const priceInfo = getProductPrice(product, spec);
+  const useSpec = product.pricing.type === 'dual' ? spec : null;
+  const key = getCartKey(productId, useSpec);
+  const priceInfo = getProductPrice(product, useSpec);
 
   const existing = state.cart.find((item) => item.key === key);
-  if (existing) {
-    existing.qty += qty;
-  } else {
+  if (existing) existing.qty += qty;
+  else {
     state.cart.push({
       key,
       productId,
-      spec,
+      spec: useSpec,
       name: product.name,
       image: product.image,
       ...priceInfo,
@@ -180,7 +282,62 @@ function addToCart(productId, qty) {
     });
   }
   updateCartUI();
-  showToast(`已加入：${product.name}${spec ? `（${priceInfo.label}）` : ''}`);
+  showToast(`已加入：${product.name}${useSpec ? `（${priceInfo.label}）× ${qty}` : ` × ${qty}`}`);
+}
+
+function openAddCartModal(productId) {
+  const product = PRODUCTS.find((p) => p.id === productId);
+  if (!product) return;
+
+  state.addCartProductId = productId;
+  state.addCartSpec = product.pricing.type === 'dual' ? 'bottle' : null;
+  state.addCartQty = 1;
+
+  document.getElementById('addCartTitle').textContent = product.name;
+  renderAddCartBody(product);
+  document.getElementById('addCartModal').classList.add('show');
+}
+
+function renderAddCartBody(product) {
+  const body = document.getElementById('addCartBody');
+  let specHtml = '';
+
+  if (product.pricing.type === 'dual') {
+    const { bottle, case: c } = product.pricing;
+    specHtml = `
+      <div class="add-cart-section">
+        <div class="add-cart-label">选择规格</div>
+        <div class="price-options">
+          <div class="price-option ${state.addCartSpec === 'bottle' ? 'selected' : ''}" data-spec="bottle">
+            <div class="price-option-label">${bottle.label}</div>
+            <div class="price-option-value">¥${bottle.price}</div>
+            <div class="price-option-note">/${bottle.unit}</div>
+          </div>
+          <div class="price-option ${state.addCartSpec === 'case' ? 'selected' : ''}" data-spec="case">
+            <div class="price-option-label">${c.label}</div>
+            <div class="price-option-value">¥${c.price}</div>
+            <div class="price-option-note">${c.note || ''}</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  body.innerHTML = `
+    ${specHtml}
+    <div class="add-cart-section">
+      <div class="add-cart-label">数量</div>
+      <div class="qty-control qty-control-lg" id="addCartQtyCtrl">
+        <button class="qty-btn minus" type="button">−</button>
+        <span class="qty-value">${state.addCartQty}</span>
+        <button class="qty-btn plus" type="button">+</button>
+      </div>
+    </div>
+    <button class="submit-btn" type="button" id="confirmAddCart">确认加入购物袋</button>`;
+}
+
+function closeAddCartModal() {
+  document.getElementById('addCartModal').classList.remove('show');
+  state.addCartProductId = null;
 }
 
 function updateCartUI() {
@@ -217,8 +374,8 @@ function updateCartUI() {
     )
     .join('');
 
-  const total = state.cart.reduce((s, i) => s + i.price * i.qty, 0);
-  document.getElementById('cartTotal').textContent = `¥${total}`;
+  document.getElementById('cartTotal').textContent =
+    `¥${state.cart.reduce((s, i) => s + i.price * i.qty, 0)}`;
 }
 
 function showToast(msg) {
@@ -231,15 +388,16 @@ function showToast(msg) {
       bottom: '80px',
       left: '50%',
       transform: 'translateX(-50%)',
-      background: 'rgba(0,0,0,0.75)',
-      color: '#fff',
+      background: 'rgba(26,24,20,0.88)',
+      color: '#F0E8DA',
       padding: '10px 20px',
-      borderRadius: '8px',
+      borderRadius: '2px',
       fontSize: '13px',
       zIndex: '999',
       transition: 'opacity 0.3s',
-      maxWidth: '80%',
+      maxWidth: '85%',
       textAlign: 'center',
+      letterSpacing: '0.04em',
     });
     document.body.appendChild(toast);
   }
@@ -264,14 +422,12 @@ function closeCart() {
 function openCheckout() {
   if (state.cart.length === 0) return;
   closeCart();
-
   const summary = document.getElementById('orderSummary');
-  const lines = state.cart.map(
-    (i) => `${i.name}（${i.label}）× ${i.qty} · ¥${i.price * i.qty}`
-  );
-  const total = state.cart.reduce((s, i) => s + i.price * i.qty, 0);
-  summary.innerHTML = lines.join('<br>') + `<div class="total-line">合计：¥${total}</div>`;
-
+  summary.innerHTML =
+    state.cart
+      .map((i) => `${i.name}（${i.label}）× ${i.qty} · ¥${i.price * i.qty}`)
+      .join('<br>') +
+    `<div class="total-line">合计：¥${state.cart.reduce((s, i) => s + i.price * i.qty, 0)}</div>`;
   document.getElementById('checkoutModal').classList.add('show');
 }
 
@@ -296,26 +452,21 @@ async function submitOrder(formData) {
     total: state.cart.reduce((s, i) => s + i.price * i.qty, 0),
   };
 
-  const apiBase = getApiBase();
-  const resp = await fetch(`${apiBase}/api/orders`, {
+  const resp = await fetch(`${getApiBase()}/api/orders`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(order),
   });
-
   const result = await resp.json();
-  if (!resp.ok || !result.ok) {
-    throw new Error(result.error || '提交失败，请稍后重试');
-  }
+  if (!resp.ok || !result.ok) throw new Error(result.error || '提交失败，请稍后重试');
 
+  saveMyOrder(order);
   return order;
 }
 
 function getApiBase() {
   const host = location.hostname;
-  if (host === 'localhost' || host === '127.0.0.1') {
-    return '';
-  }
+  if (host === 'localhost' || host === '127.0.0.1') return '';
   const base = window.APP_CONFIG?.API_BASE || '';
   if (!base || base === 'YOUR_VERCEL_URL') {
     throw new Error('请先配置 config.js 中的 Vercel API 地址');
@@ -334,29 +485,45 @@ function bindEvents() {
   });
 
   document.getElementById('productArea').addEventListener('click', (e) => {
-    const opt = e.target.closest('.price-option');
-    if (opt) {
-      state.selectedSpec[opt.dataset.product] = opt.dataset.spec;
-      renderProducts();
+    const link = e.target.closest('.product-card-link');
+    if (link) {
+      openDetail(link.dataset.product);
       return;
     }
 
-    const addBtn = e.target.closest('.add-btn');
+    const addBtn = e.target.closest('.add-btn, .detail-add-btn');
     if (addBtn) {
-      const card = addBtn.closest('.product-card');
-      const qty = parseInt(card.querySelector('.qty-value').textContent, 10);
-      addToCart(addBtn.dataset.product, qty);
+      e.stopPropagation();
+      openAddCartModal(addBtn.dataset.product);
       return;
-    }
-
-    const qtyCtrl = e.target.closest('.qty-control:not([data-cart-key])');
-    if (qtyCtrl && e.target.classList.contains('qty-btn')) {
-      const val = qtyCtrl.querySelector('.qty-value');
-      let n = parseInt(val.textContent, 10);
-      n = e.target.classList.contains('plus') ? n + 1 : Math.max(1, n - 1);
-      val.textContent = n;
     }
   });
+
+  document.getElementById('addCartBody').addEventListener('click', (e) => {
+    const opt = e.target.closest('.price-option');
+    if (opt) {
+      state.addCartSpec = opt.dataset.spec;
+      const product = PRODUCTS.find((p) => p.id === state.addCartProductId);
+      renderAddCartBody(product);
+      return;
+    }
+
+    const ctrl = e.target.closest('#addCartQtyCtrl');
+    if (ctrl && e.target.classList.contains('qty-btn')) {
+      if (e.target.classList.contains('plus')) state.addCartQty++;
+      else state.addCartQty = Math.max(1, state.addCartQty - 1);
+      ctrl.querySelector('.qty-value').textContent = state.addCartQty;
+      return;
+    }
+
+    if (e.target.id === 'confirmAddCart') {
+      addToCart(state.addCartProductId, state.addCartQty, state.addCartSpec);
+      closeAddCartModal();
+    }
+  });
+
+  document.getElementById('backBtn').addEventListener('click', goShop);
+  document.getElementById('ordersBtn').addEventListener('click', openOrders);
 
   document.getElementById('cartBtn').addEventListener('click', openCart);
   document.getElementById('closeCart').addEventListener('click', closeCart);
@@ -365,6 +532,7 @@ function bindEvents() {
   document.getElementById('closeCheckout').addEventListener('click', () => {
     document.getElementById('checkoutModal').classList.remove('show');
   });
+  document.getElementById('closeAddCart').addEventListener('click', closeAddCartModal);
 
   document.getElementById('cartItems').addEventListener('click', (e) => {
     const ctrl = e.target.closest('.qty-control[data-cart-key]');
@@ -372,9 +540,8 @@ function bindEvents() {
     const key = ctrl.dataset.cartKey;
     const item = state.cart.find((i) => i.key === key);
     if (!item) return;
-    if (e.target.classList.contains('plus')) {
-      item.qty++;
-    } else {
+    if (e.target.classList.contains('plus')) item.qty++;
+    else {
       item.qty = Math.max(0, item.qty - 1);
       if (item.qty === 0) state.cart = state.cart.filter((i) => i.key !== key);
     }
@@ -386,15 +553,12 @@ function bindEvents() {
     const btn = e.target.querySelector('.submit-btn');
     btn.disabled = true;
     btn.textContent = '提交中…';
-
     try {
       const order = await submitOrder(new FormData(e.target));
-
       document.getElementById('checkoutModal').classList.remove('show');
       document.getElementById('successMsg').textContent =
         `订单号 ${order.id} 已提交，我们将尽快与您联系确认配送。`;
       document.getElementById('successModal').classList.add('show');
-
       state.cart = [];
       updateCartUI();
       e.target.reset();
