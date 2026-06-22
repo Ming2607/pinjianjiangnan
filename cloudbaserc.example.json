@@ -1,0 +1,14 @@
+{
+  "envId": "your-env-id",
+  "functionRoot": "./cloudfunctions",
+  "functions": [
+    {
+      "name": "order",
+      "timeout": 15,
+      "runtime": "Nodejs18.15",
+      "envVariables": {
+        "SERVERCHAN_SENDKEY": "从 .env 复制，勿提交到 Git"
+      }
+    }
+  ]
+}

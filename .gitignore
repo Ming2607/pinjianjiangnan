@@ -1,4 +1,5 @@
 .env
+cloudbaserc.json
 node_modules/
 orders.json
 

@@ -5,8 +5,7 @@
  * 本地开发（localhost）会自动走本机 server.js
  */
 window.APP_CONFIG = {
-  // 国内请改为腾讯云 API 地址；海外/VPN 可用 Vercel
-  API_BASE: 'https://jiu-gamma.vercel.app',
-  // 若云函数路径不是 /api/orders，在此修改，例如 '/order'
-  API_PATH: '/api/orders',
+  // 腾讯云 CloudBase 云函数（国内可访问）
+  API_BASE: 'https://pinjianjiangnan-d0f2mt6713493228-1445879452.ap-shanghai.app.tcloudbase.com',
+  API_PATH: '/order',
 };
