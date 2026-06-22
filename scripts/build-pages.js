@@ -15,17 +15,14 @@ function copyFile(src, dest) {
   console.log('  ✓', path.relative(ROOT, dest));
 }
 
-function copyDir(srcDir, destDir) {
+function copyDir(srcDir, destDir, filterRe) {
   if (!fs.existsSync(srcDir)) return;
   fs.mkdirSync(destDir, { recursive: true });
   for (const name of fs.readdirSync(srcDir)) {
+    if (filterRe && !filterRe.test(name)) continue;
     const src = path.join(srcDir, name);
-    const dest = path.join(destDir, name);
-    if (fs.statSync(src).isDirectory()) {
-      copyDir(src, dest);
-    } else {
-      copyFile(src, dest);
-    }
+    if (fs.statSync(src).isDirectory()) continue;
+    copyFile(src, path.join(destDir, name));
   }
 }
 
@@ -40,7 +37,7 @@ for (const file of STATIC_FILES) {
   copyFile(path.join(ROOT, file), path.join(DOCS, file));
 }
 
-copyDir(path.join(ROOT, 'images'), path.join(DOCS, 'images'));
+copyDir(path.join(ROOT, 'images'), path.join(DOCS, 'images'), /\.(jpe?g|webp)$/i);
 fs.writeFileSync(path.join(DOCS, '.nojekyll'), '');
 
 const config = fs.readFileSync(path.join(DOCS, 'config.js'), 'utf8');

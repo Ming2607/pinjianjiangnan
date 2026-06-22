@@ -260,12 +260,34 @@ body {
 
 .product-image-wrap {
   width: 100%;
-  background: linear-gradient(180deg, #FAF8F5 0%, #F3EFE8 100%);
+  background: #F3EFE8;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 16px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border);
+  min-height: 220px;
+  position: relative;
+}
+
+.product-image-wrap::after {
+  content: '加载中…';
+  position: absolute;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  transition: opacity 0.2s;
+}
+
+.product-image-wrap.is-loaded::after {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.product-image-wrap picture {
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 .product-image {
@@ -273,6 +295,12 @@ body {
   height: 220px;
   object-fit: contain;
   display: block;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.product-image.is-loaded {
+  opacity: 1;
 }
 
 .product-body {

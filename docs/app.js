@@ -42,16 +42,52 @@ function renderProducts() {
   const cat = CATEGORIES.find((c) => c.id === state.activeCategory);
   const products = PRODUCTS.filter((p) => p.categoryId === state.activeCategory);
 
+  preloadCategoryImages(products);
+
   area.innerHTML = `
     <div class="category-header">
       <h2>${cat.name}</h2>
       <p>${cat.subtitle}</p>
     </div>
-    ${products.map(renderProductCard).join('')}
+    ${products.map((p, i) => renderProductCard(p, i)).join('')}
   `;
+
+  bindImageLoaders();
 }
 
-function renderProductCard(product) {
+function preloadCategoryImages(products) {
+  products.forEach((p) => {
+    const img = new Image();
+    img.src = assetUrl(p.image.replace(/\.jpg$/, '.webp'));
+  });
+}
+
+function renderProductImage(product, index) {
+  const jpg = assetUrl(product.image);
+  const webp = assetUrl(product.image.replace(/\.jpg$/, '.webp'));
+  const priority = index < 2 ? ' fetchpriority="high"' : '';
+  return `
+    <picture>
+      <source srcset="${webp}" type="image/webp">
+      <img class="product-image" src="${jpg}" alt="${product.name}" decoding="async"${priority}>
+    </picture>`;
+}
+
+function bindImageLoaders() {
+  document.querySelectorAll('.product-image').forEach((img) => {
+    const done = () => {
+      img.classList.add('is-loaded');
+      img.closest('.product-image-wrap')?.classList.add('is-loaded');
+    };
+    if (img.complete) done();
+    else {
+      img.addEventListener('load', done);
+      img.addEventListener('error', done);
+    }
+  });
+}
+
+function renderProductCard(product, index) {
   const spec = state.selectedSpec[product.id];
   let pricingHtml = '';
 
@@ -88,7 +124,7 @@ function renderProductCard(product) {
   return `
     <div class="product-card" data-id="${product.id}">
       <div class="product-image-wrap">
-        <img class="product-image" src="${assetUrl(product.image)}" alt="${product.name}" loading="lazy" />
+        ${renderProductImage(product, index)}
       </div>
       <div class="product-body">
         <div class="product-name">${product.name}</div>

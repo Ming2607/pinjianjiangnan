@@ -24,7 +24,7 @@ const PRODUCTS = [
     categoryId: 'daxueshi',
     name: '江南大学士 · 典藏',
     desc: '52° 浓香型，礼盒装 500ml',
-    image: 'images/dxs-01.png',
+    image: 'images/dxs-01.jpg',
     pricing: {
       type: 'dual',
       bottle: { label: '单瓶', price: 168, unit: '瓶' },
@@ -36,7 +36,7 @@ const PRODUCTS = [
     categoryId: 'daxueshi',
     name: '江南大学士 · 经典',
     desc: '52° 浓香型，经典款 500ml',
-    image: 'images/dxs-02.png',
+    image: 'images/dxs-02.jpg',
     pricing: {
       type: 'dual',
       bottle: { label: '单瓶', price: 128, unit: '瓶' },
@@ -48,7 +48,7 @@ const PRODUCTS = [
     categoryId: 'daxueshi',
     name: '江南大学士 · 臻品',
     desc: '42° 浓香型，臻品款 500ml',
-    image: 'images/dxs-03.png',
+    image: 'images/dxs-03.jpg',
     pricing: {
       type: 'dual',
       bottle: { label: '单瓶', price: 198, unit: '瓶' },
@@ -60,7 +60,7 @@ const PRODUCTS = [
     categoryId: 'daxueshi',
     name: '江南大学士 · 礼赠',
     desc: '52° 浓香型，节日礼赠装 500ml',
-    image: 'images/dxs-04.png',
+    image: 'images/dxs-04.jpg',
     pricing: {
       type: 'dual',
       bottle: { label: '单瓶', price: 158, unit: '瓶' },
@@ -73,7 +73,7 @@ const PRODUCTS = [
     categoryId: 'zhishanyun',
     name: '至善韵 · 陈年佳酿',
     desc: '53° 酱香型，江南大学教授团队监制 500ml',
-    image: 'images/zsy-01.png',
+    image: 'images/zsy-01.jpg',
     pricing: {
       type: 'single',
       price: 268,
@@ -86,7 +86,7 @@ const PRODUCTS = [
     categoryId: 'zhongqiu',
     name: '无锡老字号 · 花雕熟醉蟹',
     desc: '传统花雕工艺，冷链配送，4只/盒',
-    image: 'images/zq-01.png',
+    image: 'images/zq-01.jpg',
     pricing: {
       type: 'single',
       price: 198,
