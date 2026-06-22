@@ -6,5 +6,5 @@
  * 2. 本地开发（localhost）会自动走本机 server.js，无需修改
  */
 window.APP_CONFIG = {
-  API_BASE: 'YOUR_VERCEL_URL',
+  API_BASE: 'https://jiu-gamma.vercel.app',
 };
