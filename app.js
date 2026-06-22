@@ -452,13 +452,38 @@ async function submitOrder(formData) {
     total: state.cart.reduce((s, i) => s + i.price * i.qty, 0),
   };
 
-  const resp = await fetch(`${getApiBase()}/api/orders`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(order),
-  });
-  const result = await resp.json();
-  if (!resp.ok || !result.ok) throw new Error(result.error || '提交失败，请稍后重试');
+  const apiPath = window.APP_CONFIG?.API_PATH || '/api/orders';
+  const url = `${getApiBase()}${apiPath}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 18000);
+
+  let resp;
+  try {
+    resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order),
+      signal: controller.signal,
+    });
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      throw new Error('连接超时：订单服务器在国内可能无法访问，请参见 DEPLOY-CN.md 配置腾讯云 API');
+    }
+    throw new Error('网络错误：无法连接订单服务器（微信内常见）。请换用浏览器重试或配置国内 API');
+  } finally {
+    clearTimeout(timer);
+  }
+
+  let result;
+  try {
+    result = await resp.json();
+  } catch {
+    throw new Error('服务器响应异常，请稍后重试');
+  }
+
+  if (!resp.ok || !result.ok) {
+    throw new Error(result.error || '提交失败，请稍后重试');
+  }
 
   saveMyOrder(order);
   return order;

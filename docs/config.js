@@ -1,10 +1,12 @@
 /**
  * 部署配置
  * ─────────────────────────────────────────
- * 1. 部署 Vercel 后，把 YOUR_VERCEL_URL 换成你的 Vercel 地址
- *    例如：https://jiu-order.vercel.app
- * 2. 本地开发（localhost）会自动走本机 server.js，无需修改
+ * 国内用户：Vercel 常无法访问，请用腾讯云云函数，见 DEPLOY-CN.md
+ * 本地开发（localhost）会自动走本机 server.js
  */
 window.APP_CONFIG = {
+  // 国内请改为腾讯云 API 地址；海外/VPN 可用 Vercel
   API_BASE: 'https://jiu-gamma.vercel.app',
+  // 若云函数路径不是 /api/orders，在此修改，例如 '/order'
+  API_PATH: '/api/orders',
 };
