@@ -1,0 +1,7 @@
+.env
+node_modules/
+orders.json
+
+# docs/ 需要提交到 GitHub 供 Pages 使用（或由 CI 生成）
+# 若使用 GitHub Actions 自动部署，可取消下行注释：
+# docs/

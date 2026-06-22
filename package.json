@@ -1,0 +1,15 @@
+{
+  "name": "jiu-order",
+  "version": "1.0.0",
+  "description": "品鉴江南｜江大伴手礼订购系统",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build:pages": "node scripts/build-pages.js",
+    "test-notify": "curl -s -X POST http://localhost:3000/api/test-notify"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
+}
