@@ -41,17 +41,15 @@ function setLoggedIn(loggedIn) {
   document.getElementById('refreshBtn').hidden = !loggedIn;
 }
 
-function isProcessedOrder(order) {
-  return order.status === 'shipped' || order.status === 'completed';
-}
-
 function getFilteredOrders() {
   let list = orders.slice();
 
   if (activeFilter === 'pending') {
     list = list.filter((o) => o.status === 'pending');
-  } else if (activeFilter === 'processed') {
-    list = list.filter((o) => isProcessedOrder(o));
+  } else if (activeFilter === 'shipped') {
+    list = list.filter((o) => o.status === 'shipped');
+  } else if (activeFilter === 'completed') {
+    list = list.filter((o) => o.status === 'completed');
   }
 
   const q = searchQuery.trim().toUpperCase();
@@ -63,11 +61,10 @@ function getFilteredOrders() {
 }
 
 function updateFilterCounts() {
-  const pending = orders.filter((o) => o.status === 'pending').length;
-  const processed = orders.filter((o) => isProcessedOrder(o)).length;
   document.getElementById('countAll').textContent = orders.length;
-  document.getElementById('countPending').textContent = pending;
-  document.getElementById('countProcessed').textContent = processed;
+  document.getElementById('countPending').textContent = orders.filter((o) => o.status === 'pending').length;
+  document.getElementById('countShipped').textContent = orders.filter((o) => o.status === 'shipped').length;
+  document.getElementById('countCompleted').textContent = orders.filter((o) => o.status === 'completed').length;
 }
 
 function updateFilterTabs() {
@@ -276,11 +273,10 @@ document.getElementById('adminKeyInput').addEventListener('keydown', (e) => {
 document.getElementById('toggleAdminKey').addEventListener('click', () => {
   const input = document.getElementById('adminKeyInput');
   const btn = document.getElementById('toggleAdminKey');
-  const show = input.type === 'password';
-  input.type = show ? 'text' : 'password';
-  btn.querySelector('.eye-open').hidden = show;
-  btn.querySelector('.eye-closed').hidden = !show;
-  btn.setAttribute('aria-label', show ? '隐藏密码' : '显示密码');
+  const visible = input.type === 'password';
+  input.type = visible ? 'text' : 'password';
+  btn.classList.toggle('show-key', visible);
+  btn.setAttribute('aria-label', visible ? '隐藏密码' : '显示密码');
 });
 
 document.getElementById('refreshBtn').addEventListener('click', () => {

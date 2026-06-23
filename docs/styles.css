@@ -850,7 +850,7 @@ body {
 
 .admin-filters {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
 }
 
@@ -936,6 +936,26 @@ body {
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.password-toggle svg {
+  position: absolute;
+  display: block;
+}
+
+.password-toggle .eye-closed {
+  display: none;
+}
+
+.password-toggle.show-key .eye-open {
+  display: none;
+}
+
+.password-toggle.show-key .eye-closed {
+  display: block;
 }
 
 .password-toggle:active {
