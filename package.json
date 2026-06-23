@@ -8,6 +8,7 @@
     "dev": "node server.js",
     "build:pages": "node scripts/build-pages.js",
     "deploy:tencent": "node scripts/deploy-tencent.js",
+    "setup:wecom": "node scripts/setup-wecom.js",
     "set-api-url": "node scripts/set-api-url.js",
     "optimize:images": "node scripts/optimize-images.js",
     "test-notify": "curl -s -X POST http://localhost:3000/api/test-notify"
@@ -16,6 +17,7 @@
     "dotenv": "^16.4.5"
   },
   "devDependencies": {
-    "@cloudbase/cli": "^3.5.7"
+    "@cloudbase/cli": "^3.5.7",
+    "china-division": "^2.7.0"
   }
 }

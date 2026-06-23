@@ -1,6 +1,7 @@
 .env
 cloudbaserc.json
 node_modules/
+cloudfunctions/order/node_modules/
 orders.json
 
 # docs/ 需要提交到 GitHub 供 Pages 使用（或由 CI 生成）

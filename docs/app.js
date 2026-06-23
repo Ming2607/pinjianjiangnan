@@ -176,57 +176,84 @@ function renderProductDetail(productId) {
 }
 
 function renderMyOrders() {
-  const orders = loadMyOrders();
   const area = document.getElementById('productArea');
+  area.innerHTML = `
+    <div class="orders-page">
+      <div class="page-header"><h2>我的订单</h2><p id="ordersLoading">同步订单中…</p></div>
+      <div id="ordersContainer"></div>
+    </div>`;
+  area.scrollTop = 0;
+  syncAndRenderOrders();
+}
 
-  if (orders.length === 0) {
-    area.innerHTML = `
-      <div class="orders-page">
-        <div class="page-header"><h2>我的订单</h2></div>
-        <div class="orders-empty">暂无订单记录<br><span>成功下单后，订单将显示在这里</span></div>
-      </div>`;
+async function syncAndRenderOrders() {
+  const container = document.getElementById('ordersContainer');
+  const loading = document.getElementById('ordersLoading');
+  let orders = loadOrdersFromLocal();
+
+  const phones = [...new Set(orders.map((o) => o.customer?.phone).filter(Boolean))];
+  try {
+    if (phones.length) {
+      const remoteLists = await Promise.all(phones.map((p) => fetchOrdersByPhone(p)));
+      orders = mergeOrders(orders, remoteLists.flat());
+      saveOrdersToLocal(orders);
+    }
+  } catch {
+    /* 离线时仍显示本地订单 */
+  }
+
+  if (loading) {
+    loading.textContent = orders.length ? `共 ${orders.length} 笔` : '';
+  }
+
+  if (!orders.length) {
+    container.innerHTML = '<div class="orders-empty">暂无订单记录<br><span>成功下单后，订单将显示在这里</span></div>';
     return;
   }
 
-  area.innerHTML = `
-    <div class="orders-page">
-      <div class="page-header"><h2>我的订单</h2><p>共 ${orders.length} 笔</p></div>
-      ${orders.map(renderOrderCard).join('')}
-    </div>`;
-  area.scrollTop = 0;
+  container.innerHTML = orders.map(renderOrderCard).join('');
 }
 
 function renderOrderCard(order) {
   const date = new Date(order.createdAt).toLocaleString('zh-CN');
+  const st = getStatusInfo(order);
   const items = order.items
     .map((i) => `<li>${i.name}（${i.spec}）× ${i.qty} · ¥${i.subtotal}</li>`)
     .join('');
+
+  let statusExtra = '';
+  if (order.status === 'shipped' && order.trackingNo) {
+    statusExtra = `<div class="order-extra">快递单号：<strong>${order.trackingNo}</strong></div>`;
+  }
+  if (order.status === 'cancelled' && order.cancelReason) {
+    statusExtra = `<div class="order-extra cancel-reason">取消原因：${order.cancelReason}</div>`;
+  }
+
   return `
     <div class="order-card">
       <div class="order-card-head">
         <span class="order-id">${order.id}</span>
-        <span class="order-date">${date}</span>
+        <span class="order-status ${st.className}">${st.label}</span>
       </div>
+      <div class="order-date">${date}</div>
       <ul class="order-items">${items}</ul>
       <div class="order-meta">
         <span>${order.customer.name} · ${order.customer.phone}</span>
         <strong>¥${order.total}</strong>
       </div>
+      <div class="order-address">${formatFullAddress(order.customer)}</div>
+      ${statusExtra}
     </div>`;
 }
 
 function loadMyOrders() {
-  try {
-    return JSON.parse(localStorage.getItem(ORDERS_KEY) || '[]');
-  } catch {
-    return [];
-  }
+  return loadOrdersFromLocal();
 }
 
 function saveMyOrder(order) {
   const orders = loadMyOrders();
   orders.unshift(order);
-  localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+  saveOrdersToLocal(orders);
 }
 
 function goShop() {
@@ -428,18 +455,26 @@ function openCheckout() {
       .map((i) => `${i.name}（${i.label}）× ${i.qty} · ¥${i.price * i.qty}`)
       .join('<br>') +
     `<div class="total-line">合计：¥${state.cart.reduce((s, i) => s + i.price * i.qty, 0)}</div>`;
+  const form = document.getElementById('orderForm');
+  initAddressForm(form);
   document.getElementById('checkoutModal').classList.add('show');
 }
 
-async function submitOrder(formData) {
+async function submitOrder(form) {
+  const addrErr = validateAddress(form);
+  if (addrErr) throw new Error(addrErr);
+
+  const address = getAddressFromForm(form);
   const order = {
     id: 'ORD' + Date.now(),
     createdAt: new Date().toISOString(),
+    status: 'pending',
+    statusLabel: '待处理',
     customer: {
-      name: formData.get('name'),
-      phone: formData.get('phone'),
-      address: formData.get('address'),
-      note: formData.get('note') || '',
+      name: form.name.value.trim(),
+      phone: form.phone.value.trim(),
+      ...address,
+      note: form.note.value.trim() || '',
     },
     items: state.cart.map((i) => ({
       name: i.name,
@@ -452,51 +487,16 @@ async function submitOrder(formData) {
     total: state.cart.reduce((s, i) => s + i.price * i.qty, 0),
   };
 
-  const apiPath = window.APP_CONFIG?.API_PATH || '/api/orders';
-  const url = `${getApiBase()}${apiPath}`;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 18000);
+  const url = `${getApiBase()}${getApiPath()}`;
+  const result = await apiFetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(order),
+  });
 
-  let resp;
-  try {
-    resp = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(order),
-      signal: controller.signal,
-    });
-  } catch (e) {
-    if (e.name === 'AbortError') {
-      throw new Error('连接超时：订单服务器在国内可能无法访问，请参见 DEPLOY-CN.md 配置腾讯云 API');
-    }
-    throw new Error('网络错误：无法连接订单服务器（微信内常见）。请换用浏览器重试或配置国内 API');
-  } finally {
-    clearTimeout(timer);
-  }
-
-  let result;
-  try {
-    result = await resp.json();
-  } catch {
-    throw new Error('服务器响应异常，请稍后重试');
-  }
-
-  if (!resp.ok || !result.ok) {
-    throw new Error(result.error || '提交失败，请稍后重试');
-  }
-
-  saveMyOrder(order);
-  return order;
-}
-
-function getApiBase() {
-  const host = location.hostname;
-  if (host === 'localhost' || host === '127.0.0.1') return '';
-  const base = window.APP_CONFIG?.API_BASE || '';
-  if (!base || base === 'YOUR_VERCEL_URL') {
-    throw new Error('请先配置 config.js 中的 Vercel API 地址');
-  }
-  return base.replace(/\/$/, '');
+  const saved = result.order || order;
+  saveMyOrder(saved);
+  return saved;
 }
 
 function bindEvents() {
@@ -575,18 +575,19 @@ function bindEvents() {
 
   document.getElementById('orderForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const btn = e.target.querySelector('.submit-btn');
+    const form = e.target;
+    const btn = form.querySelector('.submit-btn');
     btn.disabled = true;
     btn.textContent = '提交中…';
     try {
-      const order = await submitOrder(new FormData(e.target));
+      const order = await submitOrder(form);
       document.getElementById('checkoutModal').classList.remove('show');
       document.getElementById('successMsg').textContent =
-        `订单号 ${order.id} 已提交，我们将尽快与您联系确认配送。`;
+        `订单号 ${order.id} 已提交，我们将尽快处理。您可在「订单」中查看进度。`;
       document.getElementById('successModal').classList.add('show');
       state.cart = [];
       updateCartUI();
-      e.target.reset();
+      form.reset();
     } catch (err) {
       showToast(err.message || '提交失败，请稍后重试');
     } finally {

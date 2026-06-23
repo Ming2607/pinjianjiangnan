@@ -97,10 +97,31 @@
             <span>手机号</span>
             <input type="tel" name="phone" required pattern="^1[3-9]\d{9}$" placeholder="11位手机号码" />
           </label>
-          <label>
-            <span>收货地址</span>
-            <textarea name="address" required rows="2" placeholder="省市区 + 详细地址"></textarea>
-          </label>
+          <div class="address-section">
+            <div class="address-section-head">
+              <span>收货地址</span>
+              <button type="button" class="text-btn" id="parseAddressBtn">识别粘贴地址</button>
+            </div>
+            <textarea id="addressPaste" rows="2" placeholder="可粘贴完整地址，如：江苏省无锡市滨湖区江南大学蠡湖校区…"></textarea>
+            <div class="address-grid">
+              <label class="address-select">
+                <span>省份</span>
+                <select name="province" required></select>
+              </label>
+              <label class="address-select">
+                <span>城市</span>
+                <select name="city" required disabled></select>
+              </label>
+              <label class="address-select">
+                <span>区县</span>
+                <select name="district" required disabled></select>
+              </label>
+            </div>
+            <label>
+              <span>详细地址</span>
+              <input type="text" name="detail" required placeholder="街道、小区、门牌号等" />
+            </label>
+          </div>
           <label>
             <span>备注（选填）</span>
             <input type="text" name="note" placeholder="配送时间、礼品包装等" />
@@ -123,7 +144,10 @@
   </div>
 
   <script src="config.js"></script>
+  <script src="regions.js"></script>
   <script src="data.js"></script>
+  <script src="address.js"></script>
+  <script src="order-api.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

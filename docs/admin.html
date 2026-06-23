@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <script>
+    (function () {
+      var base = '/';
+      if (location.hostname.endsWith('github.io')) {
+        var seg = location.pathname.split('/').filter(Boolean)[0];
+        if (seg) base = '/' + seg + '/';
+      }
+      window.__BASE__ = base;
+      if (base !== '/') {
+        var el = document.createElement('base');
+        el.href = base;
+        document.head.appendChild(el);
+      }
+    })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1A1814" />
+  <title>商家订单管理 · 品鉴江南</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="adminApp" class="admin-app">
+    <header class="header">
+      <a class="header-btn admin-back" href="index.html">返回</a>
+      <div class="header-brand">
+        <h1 class="header-title"><span class="title-main">商家订单</span></h1>
+      </div>
+      <button class="header-btn" id="refreshBtn" hidden>刷新</button>
+    </header>
+
+    <main class="admin-main" id="adminMain">
+      <section class="admin-login" id="adminLogin">
+        <h2>商家登录</h2>
+        <p>请输入管理密钥查看和处理订单</p>
+        <input type="password" id="adminKeyInput" placeholder="管理密钥" autocomplete="off" />
+        <button class="submit-btn" id="adminLoginBtn">进入管理</button>
+      </section>
+
+      <section class="admin-list" id="adminList" hidden>
+        <div class="admin-stats" id="adminStats"></div>
+        <div id="adminOrders"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" id="actionModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="actionModalTitle">操作订单</h2>
+        <button class="close-btn" id="closeActionModal">&times;</button>
+      </div>
+      <div class="action-modal-body" id="actionModalBody"></div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="order-api.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

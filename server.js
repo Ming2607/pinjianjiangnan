@@ -7,7 +7,6 @@ require('dotenv').config();
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const https = require('https');
 
 const PORT = process.env.PORT || 3000;
 const ORDERS_FILE = path.join(__dirname, 'orders.json');
@@ -36,79 +35,19 @@ function saveOrder(order) {
   fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
 }
 
-function formatOrderMessage(order) {
-  const lines = [
-    `【新订单】${order.id}`,
-    `时间：${new Date(order.createdAt).toLocaleString('zh-CN')}`,
-    `客户：${order.customer.name}`,
-    `电话：${order.customer.phone}`,
-    `地址：${order.customer.address}`,
-  ];
-  if (order.customer.note) lines.push(`备注：${order.customer.note}`);
-  lines.push('---');
-  order.items.forEach((i) => {
-    lines.push(`${i.name}（${i.spec}）× ${i.qty} = ¥${i.subtotal}`);
-  });
-  lines.push(`合计：¥${order.total}`);
-  return lines.join('\n');
-}
+const { formatOrderMessage, notifyOrder } = require('./lib/notify');
 
-/** Server酱 Turbo → 微信（方案 A） */
-function notifyServerChan(message, title = '品鉴江南 · 新订单') {
-  const key = process.env.SERVERCHAN_SENDKEY?.trim();
-  if (!key) {
-    return Promise.resolve({ ok: false, error: '未配置 SERVERCHAN_SENDKEY' });
-  }
-
-  const body = new URLSearchParams({ title, desp: message }).toString();
-  const url = new URL(`https://sctapi.ftqq.com/${key}.send`);
-
-  return new Promise((resolve) => {
-    const req = https.request(
-      url,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Content-Length': Buffer.byteLength(body),
-        },
-      },
-      (res) => {
-        let data = '';
-        res.on('data', (c) => (data += c));
-        res.on('end', () => {
-          try {
-            const json = JSON.parse(data);
-            if (json.code === 0) {
-              console.log('[Server酱] 微信通知已发送');
-              resolve({ ok: true });
-            } else {
-              console.error('[Server酱] 发送失败:', json.message || data);
-              resolve({ ok: false, error: json.message || data });
-            }
-          } catch {
-            console.error('[Server酱] 响应异常:', data);
-            resolve({ ok: false, error: data });
-          }
-        });
-      }
-    );
-    req.on('error', (e) => {
-      console.error('[Server酱] 请求失败:', e.message);
-      resolve({ ok: false, error: e.message });
-    });
-    req.write(body);
-    req.end();
-  });
-}
-
-async function notifyOrder(order) {
+async function notifyOrderHandler(order) {
   const message = formatOrderMessage(order);
-  const result = await notifyServerChan(message);
+  const result = await notifyOrder(message);
   if (!result.ok) {
-    console.log('\n── 新订单（微信通知未发出，已本地保存）──');
-    console.log(result.error || '请检查 .env 中的 SERVERCHAN_SENDKEY');
+    console.log('\n── 新订单（通知未发出，已本地保存）──');
+    console.log(result.error || '请检查 .env 中的 WECOM_WEBHOOK_URL / SERVERCHAN_SENDKEY');
     console.log(message + '\n');
+  } else if (result.channels) {
+    Object.entries(result.channels).forEach(([name, r]) => {
+      console.log(`[${name}] ${r.ok ? '已发送 ✓' : '失败: ' + r.error}`);
+    });
   }
   return result;
 }
@@ -133,7 +72,7 @@ const server = http.createServer(async (req, res) => {
       try {
         const order = JSON.parse(body);
         saveOrder(order);
-        const notify = await notifyOrder(order);
+        const notify = await notifyOrderHandler(order);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true, id: order.id, notified: notify.ok }));
       } catch (e) {
@@ -151,12 +90,11 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // POST /api/test-notify — 测试微信通知是否配置正确
+  // POST /api/test-notify — 测试通知渠道
   if (req.method === 'POST' && req.url === '/api/test-notify') {
-    const result = await notifyServerChan(
-      '这是一条测试消息。\n\n若您在微信收到此通知，说明 Server酱 已配置成功，新订单将自动推送到您的微信。',
-      '品鉴江南 · 通知测试'
-    );
+    const message =
+      '这是一条测试消息。\n\n若您收到此通知，说明订单通知已配置成功，新订单将自动推送。';
+    const result = await notifyOrder(message, '品鉴江南 · 通知测试');
     res.writeHead(result.ok ? 200 : 500, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(result));
     return;
@@ -185,17 +123,18 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
+  const wecom = process.env.WECOM_WEBHOOK_URL?.trim();
   const key = process.env.SERVERCHAN_SENDKEY?.trim();
   console.log(`\n品鉴江南｜江大伴手礼`);
   console.log(`本地访问：http://localhost:${PORT}`);
   console.log(`手机访问：http://<你的局域网IP>:${PORT}\n`);
-  if (key) {
-    console.log('微信通知：Server酱 已配置 ✓');
+  if (wecom) console.log('通知：企业微信机器人 已配置 ✓');
+  if (key) console.log('通知：Server酱 → 个人微信 已配置 ✓');
+  if (wecom || key) {
     console.log(`测试命令：curl -X POST http://localhost:${PORT}/api/test-notify\n`);
   } else {
-    console.log('微信通知：未配置');
-    console.log('1. 打开 https://sct.ftqq.com/ 微信扫码登录');
-    console.log('2. 复制 SendKey 到 .env 文件的 SERVERCHAN_SENDKEY=');
-    console.log('3. 重启服务后执行：curl -X POST http://localhost:' + PORT + '/api/test-notify\n');
+    console.log('通知：未配置');
+    console.log('企业微信：node scripts/setup-wecom.js "你的Webhook地址"');
+    console.log('或 Server酱：在 .env 填写 SERVERCHAN_SENDKEY\n');
   }
 });

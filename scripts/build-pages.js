@@ -7,7 +7,10 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const DOCS = path.join(ROOT, 'docs');
 
-const STATIC_FILES = ['index.html', 'styles.css', 'data.js', 'app.js', 'config.js'];
+const STATIC_FILES = [
+  'index.html', 'admin.html', 'styles.css', 'data.js', 'app.js', 'admin.js',
+  'config.js', 'regions.js', 'address.js', 'order-api.js',
+];
 
 function copyFile(src, dest) {
   fs.mkdirSync(path.dirname(dest), { recursive: true });

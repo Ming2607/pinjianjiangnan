@@ -1,4 +1,4 @@
-const { formatOrderMessage, notifyServerChan, setCors } = require('../lib/notify');
+const { formatOrderMessage, notifyOrder, setCors } = require('../lib/notify');
 
 module.exports = async (req, res) => {
   setCors(res);
@@ -19,13 +19,14 @@ module.exports = async (req, res) => {
     }
 
     const message = formatOrderMessage(order);
-    const notify = await notifyServerChan(message);
+    const notify = await notifyOrder(message);
 
     return res.status(200).json({
       ok: true,
       id: order.id,
       notified: notify.ok,
-      notifyError: notify.ok ? undefined : notify.error,
+      channels: notify.channels,
+      notifyError: notify.error,
     });
   } catch (e) {
     return res.status(400).json({ ok: false, error: e.message });

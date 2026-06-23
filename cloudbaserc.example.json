@@ -7,7 +7,8 @@
       "timeout": 15,
       "runtime": "Nodejs18.15",
       "envVariables": {
-        "SERVERCHAN_SENDKEY": "从 .env 复制，勿提交到 Git"
+        "WECOM_WEBHOOK_URL": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=你的key",
+        "SERVERCHAN_SENDKEY": "可选，Server酱 SendKey"
       }
     }
   ]

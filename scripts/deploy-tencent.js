@@ -35,12 +35,27 @@ async function main() {
 
   let sendkey = process.env.SERVERCHAN_SENDKEY;
   if (!sendkey && fs.existsSync(path.join(root, '.env'))) {
-    const m = fs.readFileSync(path.join(root, '.env'), 'utf8').match(/SERVERCHAN_SENDKEY=(.+)/);
+    const env = fs.readFileSync(path.join(root, '.env'), 'utf8');
+    const m = env.match(/SERVERCHAN_SENDKEY=(.+)/);
     if (m) sendkey = m[1].trim();
   }
-  if (!sendkey) {
-    sendkey = await ask('请输入 Server酱 SendKey: ');
+
+  let wecom = process.env.WECOM_WEBHOOK_URL;
+  if (!wecom && fs.existsSync(path.join(root, '.env'))) {
+    const env = fs.readFileSync(path.join(root, '.env'), 'utf8');
+    const m = env.match(/WECOM_WEBHOOK_URL=(.+)/);
+    if (m) wecom = m[1].trim();
   }
+  if (!wecom) {
+    wecom = await ask('请输入企业微信机器人 Webhook（留空则仅用 Server酱）: ');
+  }
+  if (!sendkey && !wecom) {
+    sendkey = await ask('未配置企业微信，请输入 Server酱 SendKey: ');
+  }
+
+  const envVariables = {};
+  if (wecom) envVariables.WECOM_WEBHOOK_URL = wecom;
+  if (sendkey) envVariables.SERVERCHAN_SENDKEY = sendkey;
 
   fs.writeFileSync(cloudbaserc, JSON.stringify({
     envId,
@@ -49,7 +64,7 @@ async function main() {
       name: 'order',
       timeout: 15,
       runtime: 'Nodejs18.15',
-      envVariables: { SERVERCHAN_SENDKEY: sendkey },
+      envVariables,
     }],
   }, null, 2));
 

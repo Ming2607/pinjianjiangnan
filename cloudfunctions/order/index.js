@@ -1,104 +1,181 @@
 'use strict';
-const https = require('https');
+const cloud = require('@cloudbase/node-sdk');
+const { formatOrderMessage, notifyOrder } = require('./notify');
 
-function formatOrderMessage(order) {
-  const lines = [
-    `【新订单】${order.id}`,
-    `时间：${new Date(order.createdAt).toLocaleString('zh-CN')}`,
-    `客户：${order.customer.name}`,
-    `电话：${order.customer.phone}`,
-    `地址：${order.customer.address}`,
-  ];
-  if (order.customer.note) lines.push(`备注：${order.customer.note}`);
-  lines.push('---');
-  order.items.forEach((i) => {
-    lines.push(`${i.name}（${i.spec}）× ${i.qty} = ¥${i.subtotal}`);
-  });
-  lines.push(`合计：¥${order.total}`);
-  return lines.join('\n');
-}
+const app = cloud.init({ env: cloud.SYMBOL_CURRENT_ENV });
+const db = app.database();
 
-function notifyServerChan(message, title = '品鉴江南 · 新订单') {
-  const key = process.env.SERVERCHAN_SENDKEY?.trim();
-  if (!key) return Promise.resolve({ ok: false, error: '未配置 SERVERCHAN_SENDKEY' });
-
-  const body = new URLSearchParams({ title, desp: message }).toString();
-  return new Promise((resolve) => {
-    const req = https.request(
-      {
-        hostname: 'sctapi.ftqq.com',
-        path: `/${key}.send`,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Content-Length': Buffer.byteLength(body),
-        },
-      },
-      (res) => {
-        let data = '';
-        res.on('data', (c) => (data += c));
-        res.on('end', () => {
-          try {
-            const json = JSON.parse(data);
-            resolve(json.code === 0 ? { ok: true } : { ok: false, error: json.message });
-          } catch {
-            resolve({ ok: false, error: data });
-          }
-        });
-      }
-    );
-    req.on('error', (e) => resolve({ ok: false, error: e.message }));
-    req.write(body);
-    req.end();
-  });
+let collectionReady = false;
+async function ensureOrdersCollection() {
+  if (collectionReady) return;
+  try {
+    await db.createCollection('orders');
+  } catch {
+    /* 集合已存在 */
+  }
+  collectionReady = true;
 }
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Content-Type': 'application/json',
 };
+
+const STATUS_LABEL = {
+  pending: '待处理',
+  shipped: '已发货',
+  cancelled: '已取消',
+};
+
+function respond(statusCode, body) {
+  return { statusCode, headers: cors, body: JSON.stringify(body) };
+}
+
+function checkAdminKey(key) {
+  const expected = process.env.ADMIN_KEY?.trim();
+  return expected && key === expected;
+}
+
+function normalizeCustomer(customer) {
+  const full =
+    customer.address ||
+    `${customer.province || ''}${customer.city || ''}${customer.district || ''}${customer.detail || ''}`;
+  return { ...customer, address: full };
+}
+
+function validateCreate(order) {
+  const c = order?.customer;
+  if (!c?.name || !c?.phone) return '订单信息不完整';
+  if (!/^1[3-9]\d{9}$/.test(String(c.phone))) return '手机号格式不正确';
+  if (!c.province || !c.city || !c.district || !c.detail) return '请填写完整收货地址';
+  return null;
+}
+
+async function createOrder(order) {
+  const err = validateCreate(order);
+  if (err) return respond(400, { ok: false, error: err });
+
+  await ensureOrdersCollection();
+
+  const now = new Date().toISOString();
+  const record = {
+    id: order.id || 'ORD' + Date.now(),
+    createdAt: order.createdAt || now,
+    updatedAt: now,
+    status: 'pending',
+    statusLabel: STATUS_LABEL.pending,
+    customer: normalizeCustomer(order.customer),
+    items: order.items || [],
+    total: order.total || 0,
+  };
+
+  await db.collection('orders').add(record);
+  const notify = await notifyOrder(formatOrderMessage(record));
+
+  return respond(200, {
+    ok: true,
+    id: record.id,
+    order: record,
+    notified: notify.ok,
+    channels: notify.channels,
+    notifyError: notify.error,
+  });
+}
+
+async function listByPhone(phone) {
+  if (!/^1[3-9]\d{9}$/.test(String(phone || ''))) {
+    return respond(400, { ok: false, error: '手机号无效' });
+  }
+  await ensureOrdersCollection();
+  const { data } = await db
+    .collection('orders')
+    .where({ 'customer.phone': String(phone) })
+    .orderBy('createdAt', 'desc')
+    .limit(50)
+    .get();
+  return respond(200, { ok: true, orders: data || [] });
+}
+
+async function listAllAdmin(adminKey) {
+  if (!checkAdminKey(adminKey)) {
+    return respond(403, { ok: false, error: '管理密钥不正确' });
+  }
+  await ensureOrdersCollection();
+  const { data } = await db
+    .collection('orders')
+    .orderBy('createdAt', 'desc')
+    .limit(100)
+    .get();
+  return respond(200, { ok: true, orders: data || [] });
+}
+
+async function updateOrder(body) {
+  if (!checkAdminKey(body.adminKey)) {
+    return respond(403, { ok: false, error: '管理密钥不正确' });
+  }
+
+  await ensureOrdersCollection();
+
+  const { id, status } = body;
+  if (!id || !status) return respond(400, { ok: false, error: '缺少订单号或状态' });
+
+  const { data: found } = await db.collection('orders').where({ id }).limit(1).get();
+  if (!found?.length) return respond(404, { ok: false, error: '订单不存在' });
+
+  const current = found[0];
+  if (current.status !== 'pending') {
+    return respond(400, { ok: false, error: '该订单已处理，无法重复操作' });
+  }
+
+  const patch = {
+    status,
+    statusLabel: STATUS_LABEL[status] || status,
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (status === 'cancelled') {
+    const reason = (body.cancelReason || '').trim();
+    if (!reason) return respond(400, { ok: false, error: '请填写取消原因' });
+    patch.cancelReason = reason;
+  }
+
+  if (status === 'shipped') {
+    const trackingNo = (body.trackingNo || '').trim();
+    if (!trackingNo) return respond(400, { ok: false, error: '请填写快递单号' });
+    patch.trackingNo = trackingNo;
+    patch.shippedAt = new Date().toISOString();
+  }
+
+  await db.collection('orders').doc(current._id).update(patch);
+  const updated = { ...current, ...patch };
+
+  return respond(200, { ok: true, order: updated });
+}
 
 exports.main = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: cors, body: '' };
   }
 
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers: cors,
-      body: JSON.stringify({ ok: false, error: 'Method not allowed' }),
-    };
-  }
-
   try {
-    const order = JSON.parse(event.body || '{}');
-    if (!order?.customer?.name || !order?.customer?.phone) {
-      return {
-        statusCode: 400,
-        headers: cors,
-        body: JSON.stringify({ ok: false, error: '订单信息不完整' }),
-      };
+    const qs = event.queryStringParameters || {};
+
+    if (event.httpMethod === 'GET') {
+      if (qs.adminKey) return listAllAdmin(qs.adminKey);
+      if (qs.phone) return listByPhone(qs.phone);
+      return respond(400, { ok: false, error: '请提供 phone 或 adminKey 参数' });
     }
 
-    const notify = await notifyServerChan(formatOrderMessage(order));
-    return {
-      statusCode: 200,
-      headers: cors,
-      body: JSON.stringify({
-        ok: true,
-        id: order.id,
-        notified: notify.ok,
-        notifyError: notify.ok ? undefined : notify.error,
-      }),
-    };
+    if (event.httpMethod === 'POST') {
+      const body = JSON.parse(event.body || '{}');
+      if (body.action === 'update') return updateOrder(body);
+      return createOrder(body);
+    }
+
+    return respond(405, { ok: false, error: 'Method not allowed' });
   } catch (e) {
-    return {
-      statusCode: 400,
-      headers: cors,
-      body: JSON.stringify({ ok: false, error: e.message }),
-    };
+    return respond(500, { ok: false, error: e.message || '服务器错误' });
   }
 };

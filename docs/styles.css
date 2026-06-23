@@ -667,6 +667,7 @@ body {
 .order-date {
   font-size: 10px;
   color: var(--text-muted);
+  margin-bottom: 8px;
 }
 
 .order-items {
@@ -689,6 +690,257 @@ body {
   font-family: 'Noto Serif SC', serif;
   font-size: 16px;
   color: var(--ink);
+}
+
+.order-address {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-top: 8px;
+}
+
+.order-status {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 2px;
+  letter-spacing: 0.06em;
+}
+
+.status-pending {
+  background: #F5F0E6;
+  color: #8A7344;
+}
+
+.status-shipped {
+  background: #E8F2EA;
+  color: #3D6B4F;
+}
+
+.status-cancelled {
+  background: #F5E8E8;
+  color: #8A4444;
+}
+
+.order-extra {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.order-extra.cancel-reason {
+  border-color: rgba(122, 59, 59, 0.2);
+  color: var(--accent);
+}
+
+/* ── 地址表单 ── */
+.address-section {
+  margin-bottom: 16px;
+}
+
+.address-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 7px;
+}
+
+.address-section-head > span {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+}
+
+.text-btn {
+  background: none;
+  border: none;
+  color: var(--gold);
+  font-size: 11px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+}
+
+#addressPaste {
+  width: 100%;
+  border: 1px dashed var(--border-gold);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--cream);
+  margin-bottom: 12px;
+  resize: none;
+}
+
+.address-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.address-select select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 11px 14px;
+  font-size: 14px;
+  background: var(--white);
+  color: var(--ink);
+}
+
+.address-select select:disabled {
+  background: var(--cream);
+  color: var(--text-muted);
+}
+
+/* ── 商家管理 ── */
+.admin-app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  background: var(--surface);
+}
+
+.admin-back {
+  color: var(--gold-light);
+  text-decoration: none;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+}
+
+.admin-main {
+  padding: 16px;
+}
+
+.admin-login {
+  padding: 40px 12px;
+  text-align: center;
+}
+
+.admin-login h2 {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.admin-login p {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.admin-login input {
+  width: 100%;
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  padding: 12px;
+  text-align: center;
+}
+
+.stat-card strong {
+  display: block;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 20px;
+}
+
+.stat-card span {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.stat-card.highlight {
+  border-color: var(--border-gold);
+  background: var(--cream);
+}
+
+.admin-order-card .order-customer {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 8px;
+}
+
+.order-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.admin-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.admin-btn.ship {
+  background: var(--ink);
+  color: var(--gold-light);
+  border-color: var(--ink);
+}
+
+.admin-btn.cancel {
+  color: var(--accent);
+  border-color: rgba(122, 59, 59, 0.3);
+}
+
+.action-modal-body {
+  padding: 16px 20px calc(20px + var(--safe-bottom));
+}
+
+.action-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+.action-modal-body label span {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.action-modal-body input,
+.action-modal-body textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  padding: 11px 14px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.submit-btn.danger {
+  background: var(--accent);
+  color: #fff;
 }
 
 /* ── 加入购物袋弹窗 ── */
