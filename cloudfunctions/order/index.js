@@ -38,6 +38,18 @@ function checkAdminKey(key) {
   return expected && key === expected;
 }
 
+function normalizeOrderRecord(doc) {
+  if (!doc) return null;
+  if (doc.data && typeof doc.data === 'object' && !doc.customer) {
+    return { ...doc.data, _id: doc._id };
+  }
+  return doc;
+}
+
+function normalizeOrderList(list) {
+  return (list || []).map(normalizeOrderRecord).filter(Boolean);
+}
+
 function normalizeCustomer(customer) {
   const full =
     customer.address ||
@@ -95,7 +107,7 @@ async function listByPhone(phone) {
     .orderBy('createdAt', 'desc')
     .limit(50)
     .get();
-  return respond(200, { ok: true, orders: data || [] });
+  return respond(200, { ok: true, orders: normalizeOrderList(data) });
 }
 
 async function listAllAdmin(adminKey) {
@@ -108,7 +120,7 @@ async function listAllAdmin(adminKey) {
     .orderBy('createdAt', 'desc')
     .limit(100)
     .get();
-  return respond(200, { ok: true, orders: data || [] });
+  return respond(200, { ok: true, orders: normalizeOrderList(data) });
 }
 
 async function updateOrder(body) {
@@ -124,7 +136,8 @@ async function updateOrder(body) {
   const { data: found } = await db.collection('orders').where({ id }).limit(1).get();
   if (!found?.length) return respond(404, { ok: false, error: '订单不存在' });
 
-  const current = found[0];
+  const current = normalizeOrderRecord(found[0]);
+  if (!current) return respond(404, { ok: false, error: '订单不存在' });
   if (current.status !== 'pending') {
     return respond(400, { ok: false, error: '该订单已处理，无法重复操作' });
   }

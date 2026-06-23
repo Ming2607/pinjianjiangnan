@@ -68,7 +68,8 @@ function renderOrders() {
 function renderAdminOrderCard(order) {
   const st = getStatusInfo(order);
   const date = new Date(order.createdAt).toLocaleString('zh-CN');
-  const addr = formatFullAddress(order.customer);
+  const customer = order.customer || {};
+  const addr = formatFullAddress(customer);
   const items = (order.items || [])
     .map((i) => `<li>${i.name}（${i.spec}）× ${i.qty} · ¥${i.subtotal}</li>`)
     .join('');
@@ -99,9 +100,9 @@ function renderAdminOrderCard(order) {
       <div class="order-date">${date}</div>
       <ul class="order-items">${items}</ul>
       <div class="order-customer">
-        <div>${order.customer.name} · ${order.customer.phone}</div>
-        <div class="order-address">${addr}</div>
-        ${order.customer.note ? `<div class="order-note">备注：${order.customer.note}</div>` : ''}
+        <div>${customer.name || '—'} · ${customer.phone || '—'}</div>
+        <div class="order-address">${addr || '—'}</div>
+        ${customer.note ? `<div class="order-note">备注：${customer.note}</div>` : ''}
       </div>
       ${extra}
       <div class="order-meta"><span>合计</span><strong>¥${order.total}</strong></div>
@@ -177,18 +178,57 @@ async function confirmAction() {
   }
 }
 
-document.getElementById('adminLoginBtn').addEventListener('click', async () => {
+function showLoginError(msg) {
+  const el = document.getElementById('loginError');
+  if (!msg) {
+    el.hidden = true;
+    el.textContent = '';
+    return;
+  }
+  el.hidden = false;
+  el.textContent = msg;
+}
+
+async function doLogin() {
   const key = document.getElementById('adminKeyInput').value.trim();
-  if (!key) return showToast('请输入管理密钥');
+  const btn = document.getElementById('adminLoginBtn');
+  if (!key) {
+    showLoginError('请输入管理密钥');
+    return;
+  }
+  showLoginError('');
+  btn.disabled = true;
+  btn.textContent = '验证中…';
   adminKey = key;
   try {
     await loadOrders();
     sessionStorage.setItem(ADMIN_KEY_STORAGE, adminKey);
     setLoggedIn(true);
+    showLoginError('');
   } catch (e) {
     adminKey = '';
-    showToast(e.message || '登录失败');
+    sessionStorage.removeItem(ADMIN_KEY_STORAGE);
+    showLoginError(e.message || '登录失败，请检查密钥或网络');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '进入管理';
   }
+}
+
+document.getElementById('adminLoginBtn').addEventListener('click', doLogin);
+
+document.getElementById('adminKeyInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') doLogin();
+});
+
+document.getElementById('toggleAdminKey').addEventListener('click', () => {
+  const input = document.getElementById('adminKeyInput');
+  const btn = document.getElementById('toggleAdminKey');
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.querySelector('.eye-open').hidden = show;
+  btn.querySelector('.eye-closed').hidden = !show;
+  btn.setAttribute('aria-label', show ? '隐藏密码' : '显示密码');
 });
 
 document.getElementById('refreshBtn').addEventListener('click', () => {

@@ -842,6 +842,42 @@ body {
   font-size: 14px;
 }
 
+.password-field {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.password-field input {
+  margin-bottom: 0;
+  padding-right: 44px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.password-toggle:active {
+  color: var(--gold);
+}
+
+.login-error {
+  color: var(--accent);
+  font-size: 12px;
+  margin-bottom: 12px;
+  line-height: 1.5;
+  text-align: left;
+}
+
 .admin-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

@@ -32,7 +32,8 @@ async function apiFetch(url, options = {}) {
       throw new Error('服务器响应异常');
     }
     if (!resp.ok || data.ok === false) {
-      throw new Error(data.error || '请求失败');
+      if (resp.status === 403) throw new Error('管理密钥不正确，请重新输入');
+      throw new Error(data.error || `请求失败（${resp.status}）`);
     }
     return data;
   } catch (e) {
@@ -43,16 +44,28 @@ async function apiFetch(url, options = {}) {
   }
 }
 
+function normalizeOrder(order) {
+  if (!order) return null;
+  if (order.data && typeof order.data === 'object' && !order.customer) {
+    return { ...order.data, _id: order._id };
+  }
+  return order;
+}
+
+function normalizeOrders(list) {
+  return (list || []).map(normalizeOrder).filter(Boolean);
+}
+
 async function fetchOrdersByPhone(phone) {
   const url = `${getApiBase()}${getApiPath()}?phone=${encodeURIComponent(phone)}`;
   const data = await apiFetch(url);
-  return data.orders || [];
+  return normalizeOrders(data.orders);
 }
 
 async function fetchAllOrders(adminKey) {
   const url = `${getApiBase()}${getApiPath()}?adminKey=${encodeURIComponent(adminKey)}`;
   const data = await apiFetch(url);
-  return data.orders || [];
+  return normalizeOrders(data.orders);
 }
 
 async function updateOrderStatus(adminKey, payload) {
