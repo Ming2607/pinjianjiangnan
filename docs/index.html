@@ -175,13 +175,11 @@
           </div>
           <p class="payment-qr-hint">点击收款码可放大查看，长按或保存到相册</p>
           <div class="payment-upload">
-            <label class="upload-label">
-              <span>上传付款截图</span>
-              <input type="file" id="paymentProofInput" accept="image/*" hidden />
-              <div class="upload-box" id="paymentPreviewBox">
-                <span id="paymentPreviewHint">点击选择截图</span>
-                <img id="paymentPreviewImg" hidden alt="付款截图预览" />
-              </div>
+            <span class="upload-label-text">上传付款截图</span>
+            <label class="upload-box" id="paymentUploadLabel">
+              <input type="file" id="paymentProofInput" accept="image/*" />
+              <span id="paymentPreviewHint">点击从相册选择截图</span>
+              <img id="paymentPreviewImg" hidden alt="付款截图预览" />
             </label>
             <button type="button" class="submit-btn" id="submitPaymentBtn">提交付款截图</button>
           </div>

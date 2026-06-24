@@ -549,6 +549,15 @@ async function saveQrImage() {
   }
 }
 
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('无法读取图片'));
+    reader.onload = (e) => resolve(e.target.result);
+    reader.readAsDataURL(file);
+  });
+}
+
 function compressImageFile(file, maxWidth = 1200, quality = 0.82) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -575,6 +584,40 @@ function compressImageFile(file, maxWidth = 1200, quality = 0.82) {
   });
 }
 
+function estimateBase64Bytes(dataUrl) {
+  const base64 = String(dataUrl).split(',')[1] || '';
+  return Math.ceil(base64.length * 0.75);
+}
+
+async function preparePaymentImage(file) {
+  const maxBytes = 2.8 * 1024 * 1024;
+  const attempts = [
+    [1200, 0.82],
+    [900, 0.72],
+    [720, 0.62],
+  ];
+
+  for (const [width, quality] of attempts) {
+    try {
+      const dataUrl = await compressImageFile(file, width, quality);
+      if (estimateBase64Bytes(dataUrl) <= maxBytes) return dataUrl;
+    } catch {
+      /* try next size */
+    }
+  }
+
+  try {
+    const dataUrl = await compressImageFile(file, 640, 0.55);
+    if (estimateBase64Bytes(dataUrl) <= maxBytes) return dataUrl;
+  } catch {
+    /* fall through */
+  }
+
+  const raw = await readFileAsDataURL(file);
+  if (estimateBase64Bytes(raw) <= maxBytes) return raw;
+  throw new Error('图片过大，请重新截屏后再上传');
+}
+
 function resetPaymentUploadUI() {
   state.paymentImageBase64 = '';
   const input = document.getElementById('paymentProofInput');
@@ -582,6 +625,7 @@ function resetPaymentUploadUI() {
   const img = document.getElementById('paymentPreviewImg');
   input.value = '';
   hint.hidden = false;
+  hint.textContent = '点击从相册选择截图';
   img.hidden = true;
   img.src = '';
 }
@@ -749,22 +793,29 @@ function bindEvents() {
     updateCartUI();
   });
 
-  document.getElementById('paymentPreviewBox').addEventListener('click', () => {
-    document.getElementById('paymentProofInput').click();
-  });
-
   document.getElementById('paymentProofInput').addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const hint = document.getElementById('paymentPreviewHint');
+    const img = document.getElementById('paymentPreviewImg');
+    hint.textContent = '图片处理中…';
     try {
-      state.paymentImageBase64 = await compressImageFile(file);
-      const hint = document.getElementById('paymentPreviewHint');
-      const img = document.getElementById('paymentPreviewImg');
+      state.paymentImageBase64 = await preparePaymentImage(file);
       hint.hidden = true;
       img.hidden = false;
       img.src = state.paymentImageBase64;
+      img.onerror = () => {
+        img.hidden = true;
+        hint.hidden = false;
+        hint.textContent = '已选择图片，请点击下方提交';
+      };
     } catch (err) {
+      state.paymentImageBase64 = '';
+      hint.hidden = false;
+      img.hidden = true;
+      hint.textContent = '点击从相册选择截图';
       showToast(err.message || '图片处理失败');
+      e.target.value = '';
     }
   });
 
