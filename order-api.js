@@ -204,3 +204,27 @@ function loadOrdersFromLocal() {
     return [];
   }
 }
+
+const QUERIED_PHONES_KEY = 'jiu_order_phones';
+
+function loadQueriedPhones() {
+  try {
+    return JSON.parse(localStorage.getItem(QUERIED_PHONES_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function saveQueriedPhone(phone) {
+  if (!phone) return;
+  const phones = loadQueriedPhones().filter((p) => p !== phone);
+  phones.unshift(phone);
+  localStorage.setItem(QUERIED_PHONES_KEY, JSON.stringify(phones.slice(0, 10)));
+}
+
+function getKnownOrderPhones() {
+  const fromOrders = loadOrdersFromLocal()
+    .map((o) => o.customer?.phone)
+    .filter(Boolean);
+  return [...new Set([...loadQueriedPhones(), ...fromOrders])];
+}

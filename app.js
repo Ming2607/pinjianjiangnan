@@ -21,6 +21,7 @@ const state = {
   qrPreviewUrl: '',
   qrPreviewTitle: '',
   qrPreviewFilename: '',
+  ordersQueryPhone: '',
 };
 
 // ── 初始化 ──
@@ -182,24 +183,70 @@ function renderProductDetail(productId) {
 
 function renderMyOrders() {
   const area = document.getElementById('productArea');
+  const lastPhone = state.ordersQueryPhone || loadQueriedPhones()[0] || '';
   area.innerHTML = `
     <div class="orders-page">
-      <div class="page-header"><h2>我的订单</h2><p id="ordersLoading">同步订单中…</p></div>
+      <div class="page-header">
+        <h2>我的订单</h2>
+        <p id="ordersLoading">同步订单中…</p>
+      </div>
+      <div class="orders-query">
+        <label class="orders-query-label">
+          <span>查询订单</span>
+          <div class="order-search orders-phone-search">
+            <input type="tel" id="ordersPhoneInput" value="${lastPhone}" placeholder="请输入下单时的手机号" maxlength="11" inputmode="numeric" />
+            <button type="button" class="search-btn" id="ordersQueryBtn">查询</button>
+          </div>
+        </label>
+        <p class="orders-query-hint">请输入下单时填写的收货人手机号，可跨设备同步订单</p>
+      </div>
       <div id="ordersContainer"></div>
     </div>`;
   area.scrollTop = 0;
-  syncAndRenderOrders();
+  syncAndRenderOrders(state.ordersQueryPhone || lastPhone || null);
 }
 
-async function syncAndRenderOrders() {
+async function queryOrdersByPhone() {
+  const input = document.getElementById('ordersPhoneInput');
+  const phone = input?.value.trim() || '';
+  if (!/^1[3-9]\d{9}$/.test(phone)) {
+    showToast('请输入正确的11位手机号');
+    return;
+  }
+  state.ordersQueryPhone = phone;
+  saveQueriedPhone(phone);
+  const btn = document.getElementById('ordersQueryBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '查询中…';
+  }
+  try {
+    await syncAndRenderOrders(phone);
+  } catch (e) {
+    showToast(e.message || '查询失败，请稍后重试');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '查询';
+    }
+  }
+}
+
+async function syncAndRenderOrders(filterPhone = state.ordersQueryPhone || null) {
   const container = document.getElementById('ordersContainer');
   const loading = document.getElementById('ordersLoading');
-  let orders = loadOrdersFromLocal();
+  if (!container) return;
 
-  const phones = [...new Set(orders.map((o) => o.customer?.phone).filter(Boolean))];
+  let orders = loadOrdersFromLocal();
+  const phonesToSync = filterPhone
+    ? [filterPhone]
+    : getKnownOrderPhones();
+
+  if (filterPhone) saveQueriedPhone(filterPhone);
+
   try {
-    if (phones.length) {
-      const remoteLists = await Promise.all(phones.map((p) => fetchOrdersByPhone(p)));
+    if (phonesToSync.length) {
+      const remoteLists = await Promise.all(phonesToSync.map((p) => fetchOrdersByPhone(p)));
       orders = mergeOrders(orders, remoteLists.flat());
       saveOrdersToLocal(orders);
     }
@@ -207,16 +254,29 @@ async function syncAndRenderOrders() {
     /* 离线时仍显示本地订单 */
   }
 
-  if (loading) {
-    loading.textContent = orders.length ? `共 ${orders.length} 笔` : '';
+  let displayOrders = orders;
+  if (filterPhone) {
+    displayOrders = orders.filter((o) => String(o.customer?.phone) === filterPhone);
   }
 
-  if (!orders.length) {
-    container.innerHTML = '<div class="orders-empty">暂无订单记录<br><span>成功下单后，订单将显示在这里</span></div>';
+  if (loading) {
+    if (filterPhone) {
+      loading.textContent = displayOrders.length
+        ? `${filterPhone} · 共 ${displayOrders.length} 笔`
+        : `${filterPhone} · 暂无订单`;
+    } else {
+      loading.textContent = displayOrders.length ? `共 ${displayOrders.length} 笔` : '';
+    }
+  }
+
+  if (!displayOrders.length) {
+    container.innerHTML = filterPhone
+      ? `<div class="orders-empty">该手机号暂无订单<br><span>请确认号码与下单时填写的一致</span></div>`
+      : '<div class="orders-empty">暂无订单记录<br><span>请输入下单时的手机号查询</span></div>';
     return;
   }
 
-  container.innerHTML = orders.map(renderOrderCard).join('');
+  container.innerHTML = displayOrders.map(renderOrderCard).join('');
 }
 
 function renderOrderCard(order) {
@@ -709,10 +769,19 @@ async function submitOrder(form) {
 
   const saved = result.order || order;
   saveMyOrder(saved);
+  saveQueriedPhone(saved.customer.phone);
+  state.ordersQueryPhone = saved.customer.phone;
   return saved;
 }
 
 function bindEvents() {
+  document.getElementById('productArea').addEventListener('keydown', (e) => {
+    if (e.target.id === 'ordersPhoneInput' && e.key === 'Enter') {
+      e.preventDefault();
+      queryOrdersByPhone();
+    }
+  });
+
   document.getElementById('categoryNav').addEventListener('click', (e) => {
     const item = e.target.closest('.cat-item');
     if (!item) return;
@@ -723,6 +792,11 @@ function bindEvents() {
   });
 
   document.getElementById('productArea').addEventListener('click', (e) => {
+    if (e.target.id === 'ordersQueryBtn') {
+      queryOrdersByPhone();
+      return;
+    }
+
     const link = e.target.closest('.product-card-link');
     if (link) {
       openDetail(link.dataset.product);
