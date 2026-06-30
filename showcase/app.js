@@ -1,8 +1,8 @@
 /** 江南伴手礼文化展示站 — 交互逻辑 */
 
 const state = {
-  view: 'category',
-  activeId: CATEGORIES[0].id,
+  view: 'region',
+  activeId: REGIONS[0].id,
 };
 
 function getFilters() {
@@ -16,6 +16,11 @@ function getActiveMeta() {
 function giftMatches(gift) {
   const key = state.view === 'category' ? 'categories' : 'regions';
   return gift[key].includes(state.activeId);
+}
+
+function countGiftsForFilter(id, view) {
+  const key = view === 'category' ? 'categories' : 'regions';
+  return GIFTS.filter((g) => g[key].includes(id)).length;
 }
 
 function getRegionName(id) {
@@ -32,6 +37,21 @@ function renderTags(gift) {
   return regions + cats;
 }
 
+function renderRegionIntro(meta) {
+  const box = document.getElementById('regionIntro');
+  if (!box) return;
+  if (state.view !== 'region' || !meta.intro) {
+    box.hidden = true;
+    return;
+  }
+  box.hidden = false;
+  box.innerHTML = `
+    <div class="region-intro-inner">
+      <span class="region-intro-tag">${meta.tag}</span>
+      <p>${meta.intro}</p>
+    </div>`;
+}
+
 function renderGifts() {
   const meta = getActiveMeta();
   const list = GIFTS.filter(giftMatches);
@@ -42,7 +62,9 @@ function renderGifts() {
 
   title.textContent = meta.name;
   desc.textContent = meta.desc;
-  count.textContent = list.length ? `共 ${list.length} 项` : '';
+  count.textContent = list.length ? `共 ${list.length} 项推荐` : '';
+
+  renderRegionIntro(meta);
 
   if (!list.length) {
     grid.innerHTML = '<div class="empty-state">暂无相关内容</div>';
@@ -53,11 +75,16 @@ function renderGifts() {
     .map(
       (gift) => `
     <article class="gift-card">
-      <div class="gift-card-head">
-        <h3>${gift.name}</h3>
-        <div class="gift-tags">${renderTags(gift)}</div>
+      <div class="gift-card-top">
+        <div class="gift-card-head">
+          <h3>${gift.name}</h3>
+          ${gift.subtitle ? `<p class="gift-subtitle">${gift.subtitle}</p>` : ''}
+        </div>
+        ${gift.season ? `<span class="gift-season">${gift.season}</span>` : ''}
       </div>
+      <div class="gift-tags">${renderTags(gift)}</div>
       <p class="gift-intro">${gift.intro}</p>
+      ${gift.heritage ? `<p class="gift-heritage"><strong>文化背景</strong>${gift.heritage}</p>` : ''}
       <p class="gift-tips"><strong>选购提示</strong>${gift.tips}</p>
       ${
         gift.shops?.length
@@ -72,13 +99,14 @@ function renderGifts() {
 function renderFilters() {
   const nav = document.getElementById('filterNav');
   nav.innerHTML = getFilters()
-    .map(
-      (item) => `
+    .map((item) => {
+      const n = countGiftsForFilter(item.id, state.view);
+      return `
     <button type="button" class="filter-chip ${item.id === state.activeId ? 'active' : ''}" data-id="${item.id}">
-      ${state.view === 'category' ? `<em>${item.icon}</em>` : ''}
+      ${state.view === 'category' ? `<em>${item.icon}</em>` : `<em class="chip-count">${n}</em>`}
       <span>${item.name}</span>
-    </button>`
-    )
+    </button>`;
+    })
     .join('');
 }
 
@@ -125,6 +153,7 @@ function bindEvents() {
     state.activeId = chip.dataset.id;
     renderFilters();
     renderGifts();
+    document.getElementById('giftGrid').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
 }
 
