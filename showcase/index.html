@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="江南伴手礼文化展示 — 按类别与地区介绍太湖、苏杭、金陵等地特色手信与推荐店铺" />
+  <meta name="theme-color" content="#1A1814" />
+  <title>江南伴手礼指南 · 文化展示</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-mark">江南</span>
+        <div>
+          <h1>伴手礼指南</h1>
+          <p>Jiangnan Souvenir Guide</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-inner">
+        <p class="hero-kicker">文化展示 · 信息介绍</p>
+        <h2>读懂江南，<br />带一份风物回家</h2>
+        <p class="hero-desc">
+          本站汇集太湖之滨、苏杭府邸、金陵古城等地的特色伴手礼，
+          按<strong>类别</strong>与<strong>地区</strong>为您介绍名产由来、礼赠寓意与推荐店铺。
+          内容仅供文化参考与选购指引。
+        </p>
+      </div>
+    </section>
+
+    <section class="browse-section">
+      <div class="section-head">
+        <h2>探索伴手礼</h2>
+        <div class="view-tabs" id="viewTabs">
+          <button type="button" class="view-tab active" data-view="category">按类别浏览</button>
+          <button type="button" class="view-tab" data-view="region">按地区浏览</button>
+        </div>
+      </div>
+
+      <nav class="filter-nav" id="filterNav" aria-label="筛选"></nav>
+
+      <div class="list-head">
+        <div>
+          <h3 id="sectionTitle"></h3>
+          <p id="sectionDesc"></p>
+        </div>
+        <span id="giftCount" class="gift-count"></span>
+      </div>
+
+      <div class="gift-grid" id="giftGrid"></div>
+    </section>
+
+    <section class="shops-section">
+      <div class="section-head plain">
+        <h2>推荐店铺</h2>
+        <p>以下店铺以江南特产与文创见长，可按需前往选购或咨询。</p>
+      </div>
+      <div class="shop-list" id="shopList"></div>
+    </section>
+
+    <section class="about-section">
+      <div class="about-card">
+        <h2>关于本站</h2>
+        <p>
+          「江南伴手礼指南」是一座以<strong>文化展示与信息介绍</strong>为主的网站，
+          旨在向读者介绍江南各地传统与当代伴手礼的历史、风味与礼赠习俗。
+        </p>
+        <p>
+          本站不提供在线交易功能，不涉及支付与订单服务。
+          文中店铺名称仅为文化推荐与公开信息整理，不代表商业合作或广告承诺。
+        </p>
+        <ul class="about-list">
+          <li>内容涵盖：茶点、酒酿、丝绸织绣、工艺文创与地方名产</li>
+          <li>覆盖地区：无锡、苏州、杭州、南京、绍兴、常州等江南城市</li>
+          <li>用途说明：个人浏览、文化学习与伴手礼选购参考</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>江南伴手礼指南 · 文化展示网站</p>
+    <p class="footer-note">备案号：（备案通过后请在此填写，如：苏ICP备xxxxxxxx号）</p>
+    <p class="footer-copy">© 2026 江南伴手礼文化展示</p>
+  </footer>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

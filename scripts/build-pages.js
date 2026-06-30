@@ -41,6 +41,20 @@ for (const file of STATIC_FILES) {
 }
 
 copyDir(path.join(ROOT, 'images'), path.join(DOCS, 'images'), /\.(jpe?g|webp|svg|png)$/i);
+
+function copyShowcaseDir() {
+  const srcDir = path.join(ROOT, 'showcase');
+  const destDir = path.join(DOCS, 'showcase');
+  if (!fs.existsSync(srcDir)) return;
+  fs.mkdirSync(destDir, { recursive: true });
+  for (const name of fs.readdirSync(srcDir)) {
+    const src = path.join(srcDir, name);
+    if (fs.statSync(src).isDirectory()) continue;
+    copyFile(src, path.join(destDir, name));
+  }
+}
+
+copyShowcaseDir();
 fs.writeFileSync(path.join(DOCS, '.nojekyll'), '');
 
 const config = fs.readFileSync(path.join(DOCS, 'config.js'), 'utf8');
