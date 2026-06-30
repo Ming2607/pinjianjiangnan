@@ -85,7 +85,7 @@ const PRODUCTS = [
     image: 'images/zsy-01.jpg',
     pricing: {
       type: 'single',
-      price: 268,
+      price: 680,
       unit: '瓶',
     },
   },
